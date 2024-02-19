@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from models.models import Item, User
+from schemas import schemas
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -28,10 +29,12 @@ def get_items_for_user(user_id: str, db: Session):
     return db.query(Item).filter(Item.owner_id == user_id).all()
 
 def check_item_exists_for_user(user_id: str,item_id : str, db:Session):
-    item = db.query(Item).filter(Item.owner_id == user_id and Item.id == item_id).first()
+    item = db.query(Item).filter(Item.owner_id == user_id, Item.id == item_id).first()
     if item:
-        return True
-    return False
+        return item
+
+    return None
+
 
 
     

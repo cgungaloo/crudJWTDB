@@ -87,9 +87,9 @@ async def create_item(current_user: Annotated[User, Depends(get_current_active_u
 @app.get("/users/items", response_model=list[schemas.Item])
 async def get_user_items(current_user: Annotated[User, Depends(get_current_active_user)], 
                          db: Session = Depends(get_db)):
-   print(f'Getting Items for {user_id} ...')
-   user_id = current_user.id
 
+   user_id = current_user.id
+   print(f'Getting Items for {user_id} ...')
    items = get_items_for_user(user_id, db)
    
    return items
@@ -100,10 +100,19 @@ async def update_item(item_id:str,current_user: Annotated[User, Depends(get_curr
    print(f'Updating for {item_id}')
    user_id = current_user.id
 
-   exists = check_item_exists_for_user(user_id,item_id,db)
-
-   print(f"Item exists : {exists}")
-   return item
+   old_item = check_item_exists_for_user(user_id,item_id,db)
+   if old_item:
+      item_dict = item.model_dump()
+      for key, value in item_dict.items():
+         setattr(old_item, key, value) if value else None
+      
+      db.commit()
+      db.refresh(old_item)
+      return old_item
+   else:
+      raise HTTPException(status_code=404, detail="Item not found for user")
+   
+      
 
 
 
