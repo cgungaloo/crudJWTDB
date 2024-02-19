@@ -22,7 +22,7 @@ class Login(BaseModel):
 
 class Item(ItemBase):
     id: str
-    owner_id: int
+    owner_id: str
 
     class Config:
         orm_mode = True

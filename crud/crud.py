@@ -3,7 +3,7 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from models.models import User
+from models.models import Item, User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -16,5 +16,22 @@ def get_all_usernames(db: Session):
     for user in users:
         users_list.append(user.username)
     return users_list
+
+
+def create_user_item(db: Session, item: Item, user_id: str):
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+def get_items_for_user(user_id: str, db: Session):
+    return db.query(Item).filter(Item.owner_id == user_id).all()
+
+def check_item_exists_for_user(user_id: str,item_id : str, db:Session):
+    item = db.query(Item).filter(Item.owner_id == user_id and Item.id == item_id).first()
+    if item:
+        return True
+    return False
+
 
     

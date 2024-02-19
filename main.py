@@ -2,14 +2,15 @@ from datetime import timedelta
 from typing import Annotated, List
 import uuid
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from crud.crud import get_all_usernames, get_user_from_db
+from crud.crud import check_item_exists_for_user, create_user_item, get_all_usernames, get_items_for_user, get_user_from_db
 from db.db import SessionLocal, engine
 from schemas import schemas
 from models import models
 from utils.utils import create_access_token, get_current_active_user, hash_pass, verify_password
-from models.models import Base, User
+from models.models import Base, Item, User
 
 Base.metadata.create_all(bind=engine)
 
@@ -71,3 +72,39 @@ def get_current_users(current_user: Annotated[User, Depends(get_current_active_u
    print(f'CURRENT USER MAIN : {current_user}')
    db = SessionLocal()
    return get_all_usernames(db)
+
+@app.post("/users/items/")
+async def create_item(current_user: Annotated[User, Depends(get_current_active_user)] ,item: schemas.ItemCreate, db:Session = Depends(get_db)):
+   print(f'Creating Item ...')
+   user_id = current_user.id
+   item_dict = item.model_dump()
+   id = str(uuid.uuid4())
+   item_dict['id'] = id
+   item_dict['owner_id'] = user_id
+   db_item = Item(**item_dict)
+   return create_user_item(db=db, item=db_item, user_id=user_id)
+
+@app.get("/users/items", response_model=list[schemas.Item])
+async def get_user_items(current_user: Annotated[User, Depends(get_current_active_user)], 
+                         db: Session = Depends(get_db)):
+   print(f'Getting Items for {user_id} ...')
+   user_id = current_user.id
+
+   items = get_items_for_user(user_id, db)
+   
+   return items
+
+@app.put("/users/items/{item_id}", response_model=schemas.Item)
+async def update_item(item_id:str,current_user: Annotated[User, Depends(get_current_active_user)],item : schemas.Item, 
+                      db:Session = Depends(get_db)):
+   print(f'Updating for {item_id}')
+   user_id = current_user.id
+
+   exists = check_item_exists_for_user(user_id,item_id,db)
+
+   print(f"Item exists : {exists}")
+   return item
+
+
+
+   
